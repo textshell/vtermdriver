@@ -1,0 +1,9 @@
+scanner:
+  diff_only: True
+  linter: flake8
+
+flake8:
+  max-line-length: 120
+
+no_blank_comment: True
+

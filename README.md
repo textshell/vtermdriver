@@ -43,6 +43,10 @@ quit
 
 Kill the interior application (if still running) and exit.
 
+set:auto-quit
+
+Automatically quit if the interior application exits.
+
 
 Notifications
 -------------
@@ -50,6 +54,10 @@ Notifications
 *exited
 
 The application has exited.
+
+*bell
+
+The appliaction triggered the terminal bell.
 
 
 Json Output

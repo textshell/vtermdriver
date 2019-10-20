@@ -25,6 +25,7 @@ def run_in_terminal(args, *, cmds=[]):
     exit = False
     response_data = bytearray()
     result = None
+    notifications = []
     try:
         while not exit:
             events = sel.select()
@@ -44,6 +45,8 @@ def run_in_terminal(args, *, cmds=[]):
                             outer.send(b'quit\0')
                         elif message == b'*exited':
                             outer.send(b'capture:all\0')
+                        elif message.startswith(b'*'):
+                            notifications.append(message.decode())
     finally:
         outer.close()
         proc.kill()
@@ -53,7 +56,7 @@ def run_in_terminal(args, *, cmds=[]):
     for cell in result['cells']:
         cellMap[cell['x'], cell['y']] = cell
 
-    return cellMap, result
+    return cellMap, result, notifications
 
 
 foreground_test_cases = [
@@ -250,181 +253,185 @@ class Tests(unittest.TestCase):
             self.assertFalse('curly_underline' in sgr)
 
     def test_text_test(self):
-        cellMap, _ = run_in_terminal(['echo', 'aあ'])
+        cellMap, _, _ = run_in_terminal(['echo', 'aあ'])
         self.cmpCell(cellMap, 0, 0, ch='a')
         self.cmpCell(cellMap, 1, 0, ch='あ', width=2)
 
     def test_bold_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput bold; echo -n bold'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput bold; echo -n bold'])
         self.cmpCell(cellMap, 0, 0, ch='b', bold=True)
         self.cmpCell(cellMap, 1, 0, ch='o', bold=True)
         self.cmpCell(cellMap, 2, 0, ch='l', bold=True)
         self.cmpCell(cellMap, 3, 0, ch='d', bold=True)
 
     def test_blink_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput blink; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput blink; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', blink=True)
 
     def test_italic_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput sitm; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput sitm; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', italic=True)
 
     def test_inverse_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput rev; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput rev; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', inverse=True)
 
     def test_strike_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'printf "\033[9m"; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'printf "\033[9m"; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', strike=True)
 
     def test_underline_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput smul; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput smul; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', underline=True)
 
     def test_double_underline_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'printf "\033[21m"; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'printf "\033[21m"; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', double_underline=True)
 
     def test_curly_underline_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'printf "\033[4:3m"; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'printf "\033[4:3m"; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', curly_underline=True)
 
     def test_fg_test(self):
         for cmd, expected in foreground_test_cases:
             with self.subTest(color=expected):
-                cellMap, _ = run_in_terminal(['bash', '-c', cmd + '; echo -n X'])
+                cellMap, _, _ = run_in_terminal(['bash', '-c', cmd + '; echo -n X'])
                 self.cmpCell(cellMap, 0, 0, ch='X', fg=expected)
 
     def test_bg_test(self):
         for cmd, expected in background_test_cases:
             with self.subTest(color=expected):
-                cellMap, _ = run_in_terminal(['bash', '-c', cmd + '; echo -n X'])
+                cellMap, _, _ = run_in_terminal(['bash', '-c', cmd + '; echo -n X'])
                 self.cmpCell(cellMap, 0, 0, ch='X', bg=expected)
 
     def test_fgbg_test(self):
-        cellMap, _ = run_in_terminal(['bash', '-c', 'tput setaf 1; tput setab 2; echo -n X'])
+        cellMap, _, _ = run_in_terminal(['bash', '-c', 'tput setaf 1; tput setab 2; echo -n X'])
         self.cmpCell(cellMap, 0, 0, ch='X', fg='red', bg='green')
 
     def test_bold_attr(self):
-        _, res = run_in_terminal(['tput', 'bold'])
+        _, res, _ = run_in_terminal(['tput', 'bold'])
         self.cmpSGR(res, bold=True)
 
     def test_blink_attr(self):
-        _, res = run_in_terminal(['tput', 'blink'])
+        _, res, _ = run_in_terminal(['tput', 'blink'])
         self.cmpSGR(res, blink=True)
 
     def test_italic_attr(self):
-        _, res = run_in_terminal(['tput', 'sitm'])
+        _, res, _ = run_in_terminal(['tput', 'sitm'])
         self.cmpSGR(res, italic=True)
 
     def test_inverse_attr(self):
-        _, res = run_in_terminal(['tput', 'rev'])
+        _, res, _ = run_in_terminal(['tput', 'rev'])
         self.cmpSGR(res, inverse=True)
 
     def test_strike_attr(self):
-        _, res = run_in_terminal(['printf', '\033[9m'])
+        _, res, _ = run_in_terminal(['printf', '\033[9m'])
         self.cmpSGR(res, strike=True)
 
     def test_underline_attr(self):
-        _, res = run_in_terminal(['tput', 'smul'])
+        _, res, _ = run_in_terminal(['tput', 'smul'])
         self.cmpSGR(res, underline=True)
 
     def test_double_underline_attr(self):
-        _, res = run_in_terminal(['printf', '\033[21m'])
+        _, res, _ = run_in_terminal(['printf', '\033[21m'])
         self.cmpSGR(res, double_underline=True)
 
     def test_curly_underline_attr(self):
-        _, res = run_in_terminal(['printf', '\033[4:3m'])
+        _, res, _ = run_in_terminal(['printf', '\033[4:3m'])
         self.cmpSGR(res, curly_underline=True)
 
     def test_fg_attr(self):
         for cmd, expected in foreground_test_cases:
             with self.subTest(color=expected):
-                _, res = run_in_terminal(['bash', '-c', cmd])
+                _, res, _ = run_in_terminal(['bash', '-c', cmd])
                 self.cmpSGR(res, fg=expected)
 
     def test_bg_attr(self):
         for cmd, expected in background_test_cases:
             with self.subTest(color=expected):
-                _, res = run_in_terminal(['bash', '-c', cmd])
+                _, res, _ = run_in_terminal(['bash', '-c', cmd])
                 self.cmpSGR(res, bg=expected)
 
     def test_fgbg_attr(self):
-        _, res = run_in_terminal(['bash', '-c', 'tput setaf 1; tput setab 2'])
+        _, res, _ = run_in_terminal(['bash', '-c', 'tput setaf 1; tput setab 2'])
         self.cmpSGR(res, fg='red', bg='green')
 
     def test_cursor_hide(self):
-        _, res = run_in_terminal(['tput', 'civis'])
+        _, res, _ = run_in_terminal(['tput', 'civis'])
         self.assertEqual(res['cursor_visible'], False)
 
     def test_cursor_blink(self):
-        _, res = run_in_terminal(['printf', '\033[1 q'])
+        _, res, _ = run_in_terminal(['printf', '\033[1 q'])
         self.assertEqual(res['cursor_blink'], True)
 
     def test_cursor_blink_off(self):
-        _, res = run_in_terminal(['printf', '\033[2 q'])
+        _, res, _ = run_in_terminal(['printf', '\033[2 q'])
         self.assertEqual(res['cursor_blink'], False)
 
     def test_cursor_shape_block(self):
-        _, res = run_in_terminal(['printf', '\033[2 q'])
+        _, res, _ = run_in_terminal(['printf', '\033[2 q'])
         self.assertEqual(res['cursor_shape'], 'block')
 
     def test_cursor_shape_bar(self):
-        _, res = run_in_terminal(['printf', '\033[5 q'])
+        _, res, _ = run_in_terminal(['printf', '\033[5 q'])
         self.assertEqual(res['cursor_shape'], 'bar')
 
     def test_cursor_shape_underline(self):
-        _, res = run_in_terminal(['printf', '\033[3 q'])
+        _, res, _ = run_in_terminal(['printf', '\033[3 q'])
         self.assertEqual(res['cursor_shape'], 'underline')
 
     def test_inverse_screen(self):
-        _, res = run_in_terminal(['printf', '\033[?5h'])
+        _, res, _ = run_in_terminal(['printf', '\033[?5h'])
         self.assertEqual(res['inverse_screen'], True)
 
     def test_inverse_screen_inv(self):
-        cellMap, res = run_in_terminal(['bash', '-c', 'printf "\033[?5h"; tput rev; echo -n X'])
+        cellMap, res, _ = run_in_terminal(['bash', '-c', 'printf "\033[?5h"; tput rev; echo -n X'])
         self.assertEqual(res['inverse_screen'], True)
         self.cmpCell(cellMap, 0, 0, ch='X', inverse=True)
 
     def test_cursor_position(self):
-        _, res = run_in_terminal(['tput', 'cup', '5', '12'])
+        _, res, _ = run_in_terminal(['tput', 'cup', '5', '12'])
         self.assertEqual(res['cursor_column'], 12)
         self.assertEqual(res['cursor_row'], 5)
 
     def test_alt_screen(self):
-        _, res = run_in_terminal(['printf', '\033[?1049h'])
+        _, res, _ = run_in_terminal(['printf', '\033[?1049h'])
         self.assertEqual(res['alternate_screen'], True)
 
     def test_title(self):
-        _, res = run_in_terminal(['printf', '\033]1;asdzt\033\\'])
+        _, res, _ = run_in_terminal(['printf', '\033]1;asdzt\033\\'])
         self.assertEqual(res['icon_title'], 'asdzt')
 
     def test_icon(self):
-        _, res = run_in_terminal(['printf', '\033]2;asdyt\033\\'])
+        _, res, _ = run_in_terminal(['printf', '\033]2;asdyt\033\\'])
         self.assertEqual(res['title'], 'asdyt')
 
     def test_mouse_mode_clicks(self):
-        _, res = run_in_terminal(['printf', '\033[?1000h'])
+        _, res, _ = run_in_terminal(['printf', '\033[?1000h'])
         self.assertEqual(res['mouse_mode'], 'clicks')
 
     def test_mouse_mode_drag(self):
-        _, res = run_in_terminal(['printf', '\033[?1002h'])
+        _, res, _ = run_in_terminal(['printf', '\033[?1002h'])
         self.assertEqual(res['mouse_mode'], 'drag')
 
     def test_mouse_mode_movement(self):
-        _, res = run_in_terminal(['printf', '\033[?1003h'])
+        _, res, _ = run_in_terminal(['printf', '\033[?1003h'])
         self.assertEqual(res['mouse_mode'], 'movement')
 
     def test_metadata(self):
-        _, res = run_in_terminal(['printf', ''])
+        _, res, _ = run_in_terminal(['printf', ''])
         self.assertEqual(res['width'], 80)
         self.assertEqual(res['height'], 24)
         self.assertEqual(res['version'], 0)
 
     def test_send(self):
-        cellMap, _ = run_in_terminal(['cat'], cmds=[(b'send-to-interior:' + binascii.b2a_hex('aあ\r\n\x04'.encode()))])
+        cellMap, _, _ = run_in_terminal(['cat'], cmds=[(b'send-to-interior:' + binascii.b2a_hex('aあ\r\n\x04'.encode()))])
         self.cmpCell(cellMap, 0, 0, ch='a')
         self.cmpCell(cellMap, 1, 0, ch='あ', width=2)
+
+    def test_bell(self):
+        _, res, notifications = run_in_terminal(['printf', '\a'])
+        self.assertEqual(notifications, ['*bell'])
 
 
 def main():

@@ -57,7 +57,10 @@ public:
             static_cast<Main*>(user)->settermprop(prop, val);
             return 1;
         };
-        screenCallbacks.bell = nullptr;
+        screenCallbacks.bell = [](void *user) {
+            static_cast<Main*>(user)->emitBell();
+            return 1;
+        };
         screenCallbacks.resize = nullptr;
         screenCallbacks.sb_pushline = [](int, const VTermScreenCell*, void*) { return 0; }; // this does not seem to be nullable
         screenCallbacks.sb_popline = nullptr;
@@ -113,6 +116,9 @@ public:
         QObject::connect(&process, qOverload<int>(&QProcess::finished), [this] {
             const char msg[] = "*exited";
             write(controlFd, msg, sizeof(msg));
+            if (autoQuit) {
+                QCoreApplication::instance()->quit();
+            }
         });
 
         process.setProgram(args[0]);
@@ -231,6 +237,9 @@ private:
                     VTermScreen *vts = vterm_obtain_screen(vterm);
                     vterm_screen_reset(vts, 1);
                     write(controlFd, "", 1);
+                } else if (cmd == "set:auto-quit") {
+                    write(controlFd, "", 1);
+                    autoQuit = true;
                 } else if (cmd == "quit") {
                     process.terminate();
                     process.waitForFinished();
@@ -265,9 +274,15 @@ private:
         }
     }
 
+    void emitBell() {
+        const char msg[] = "*bell";
+        write(controlFd, msg, sizeof(msg));
+    }
+
 private:
     VTerm *vterm = nullptr;
     Process process;
+    bool autoQuit = false;
     int controlFd = 0; // defaults to stdin
     QByteArray pendingControlData;
     VTermScreenCallbacks screenCallbacks;

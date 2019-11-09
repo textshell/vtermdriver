@@ -37,9 +37,10 @@ def run_in_terminal(args, *, cmds=[]):
                         break
                     response_data += data
                     idx = response_data.find(0)
-                    if idx != -1:
+                    while idx != -1:
                         message = response_data[0:idx]
                         del response_data[0:idx+1]
+                        idx = response_data.find(0)
                         if message and message[0] == ord('{'):
                             result = json.loads(message.decode())
                             outer.send(b'quit\0')

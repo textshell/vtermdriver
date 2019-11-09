@@ -18,4 +18,4 @@ task:
     - PKG_CONFIG_PATH=$PWD/libvterm/libvterm-0.1/prefix/lib/pkgconfig/ meson/meson.py _build
     - ninja -C _build
   test_script:
-    - python3 test.py --driver=_build/vtermdriver
+    - python3 test.py -v --driver=_build/vtermdriver

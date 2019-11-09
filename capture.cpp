@@ -120,6 +120,11 @@ QString captureAsJsonWithoutOuterbraces(VTerm *vterm, bool global_reverse) {
             }
             cellsStr += QStringLiteral("\"");
 
+            if (!cell.chars[0]) {
+                // the cell was erased/cleared
+                cellsStr += QStringLiteral(", \"cleared\": true");
+            }
+
             if (cell.width != 1) {
                 cellsStr += QStringLiteral(", \"width\": %0").arg(QString::number(cell.width));
             }

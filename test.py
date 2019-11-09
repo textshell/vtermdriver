@@ -116,6 +116,7 @@ class Tests(unittest.TestCase):
                 double_underline=False, curly_underline=False):
         cell = cellMap[x, y]
         self.assertEqual(cell['t'], ch)
+        self.assertFalse('cleared' in cell)
         if width != 1:
             self.assertTrue('width' in cell)
             self.assertEqual(cell['width'], width)
@@ -251,6 +252,12 @@ class Tests(unittest.TestCase):
             self.assertEqual(sgr['curly_underline'], True)
         else:
             self.assertFalse('curly_underline' in sgr)
+
+    def test_cleared(self):
+        cellMap, _, _ = run_in_terminal(['echo', ''])
+        cell = cellMap[0, 0]
+        self.assertTrue('cleared' in cell)
+        self.assertEqual(cell['cleared'], True)
 
     def test_text_test(self):
         cellMap, _, _ = run_in_terminal(['echo', 'aあ'])

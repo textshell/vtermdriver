@@ -51,6 +51,7 @@ def run_in_terminal(args, *, cmds=[]):
     finally:
         outer.close()
         proc.kill()
+        proc.wait(0.5)
 
     cellMap = {}
 

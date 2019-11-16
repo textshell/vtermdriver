@@ -365,6 +365,12 @@ class Tests(unittest.TestCase):
         _, res, _ = run_in_terminal(['bash', '-c', 'tput setaf 1; tput setab 2'])
         self.cmpSGR(res, fg='red', bg='green')
 
+    def test_softwarp(self):
+        _, res, _ = run_in_terminal(['bash', '-c', 'echo ' + 'x' * 120])
+        self.assertEqual(list(res['lines'].keys()), ['0'])
+        self.assertTrue('soft_wrapped' in res['lines']['0'])
+        self.assertTrue(res['lines']['0']['soft_wrapped'])
+
     def test_cursor_hide(self):
         _, res, _ = run_in_terminal(['tput', 'civis'])
         self.assertEqual(res['cursor_visible'], False)

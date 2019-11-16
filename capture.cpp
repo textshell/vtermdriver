@@ -95,13 +95,23 @@ QString captureAsJsonWithoutOuterbraces(VTerm *vterm, bool global_reverse) {
 
     vterm_get_size(vterm, &height, &width);
     VTermScreen *vts = vterm_obtain_screen(vterm);
-
+    VTermState *state = vterm_obtain_state(vterm);
 
     result += QStringLiteral("  \"width\": %0, \"height\": %1, \"version\": 0, ")
             .arg(QString::number(width), QString::number(height));
     QString errors;
     QString cellsStr = "\"cells\":[\n";
+    QString lineMeta;
     for (int y = 0; y < height; y++) {
+        bool softWrapped = y + 1 < height ? vterm_state_get_lineinfo(state, y + 1)->continuation
+                                          : false;
+        if (softWrapped) {
+            if (lineMeta.size()) {
+                lineMeta += ",\n";
+            }
+            lineMeta += QStringLiteral("    \"%1\": { \"soft_wrapped\": true }").arg(QString::number(y));
+        }
+        // soft_wrapped
         for (int x = 0; x < width; x++) {
             VTermScreenCell cell;
             vterm_screen_get_cell(vts, {y, x}, &cell);
@@ -155,9 +165,13 @@ QString captureAsJsonWithoutOuterbraces(VTerm *vterm, bool global_reverse) {
     }
     cellsStr += QStringLiteral("]");
 
+    if (lineMeta.size()) {
+        lineMeta = ",\n  \"lines\": {" + lineMeta + "\n  }";
+    }
+
     if (errors.size()) {
         errors = QStringLiteral("\n  \"errors\": \"\",\n").arg(errors);
     }
 
-    return result + errors + cellsStr;
+    return result + errors + cellsStr + lineMeta;
 }

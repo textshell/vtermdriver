@@ -95,7 +95,11 @@ Json Output
             "y": 0
         },
         // ...
-    ]
+    ],
+    "lines": {
+	"0": { "soft_wrapped": true },
+	// ...
+    }
 }
 
 ```

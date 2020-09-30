@@ -260,11 +260,23 @@ private:
         } else if (prop == VTERM_PROP_ALTSCREEN) {
             altScreen = val->boolean;
         } else if (prop == VTERM_PROP_TITLE) {
-            titleSet = true;
-            title = QString::fromUtf8(val->string);
+            if (val->string.initial) {
+                tmpTitle.clear();
+            }
+            tmpTitle += QString::fromUtf8(val->string.str, val->string.len);
+            if (val->string.final) {
+                titleSet = true;
+                title = tmpTitle;
+            }
         } else if (prop == VTERM_PROP_ICONNAME) {
-            iconTitleSet = true;
-            iconTitle = QString::fromUtf8(val->string);
+            if (val->string.initial) {
+                tmpIconTitle.clear();
+            }
+            tmpIconTitle += QString::fromUtf8(val->string.str, val->string.len);
+            if (val->string.final) {
+                iconTitleSet = true;
+                iconTitle = tmpIconTitle;
+            }
         } else if (prop == VTERM_PROP_REVERSE) {
             inverse = val->boolean;
         } else if (prop == VTERM_PROP_CURSORSHAPE) {
@@ -295,8 +307,10 @@ private:
     bool inverse = false;
     bool titleSet = false;
     QString title;
+    QString tmpTitle;
     bool iconTitleSet = false;
     QString iconTitle;
+    QString tmpIconTitle;
     int cursorShape = VTERM_PROP_CURSORSHAPE_BLOCK;
     int mouseMode = VTERM_PROP_MOUSE_NONE;
 };

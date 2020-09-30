@@ -68,25 +68,22 @@ public:
 
         vterm_screen_set_callbacks(vts, &screenCallbacks, this);
 
-        unhandled.text = nullptr;
         unhandled.control = [] (unsigned char control, void *user) {
             (void)control;(void)user;
             return 1;
         };
-        unhandled.escape = nullptr;
         unhandled.csi = [] (const char *leader, const long args[], int argcount, const char *intermed, char command, void *user) {
             (void)leader;(void)args;(void)argcount;(void)intermed;(void)command;(void)user;
             return 1;
         };
-        unhandled.osc = [] (const char *command, size_t cmdlen, void *user) {
-            (void)command;(void)cmdlen;(void)user;
+        unhandled.osc = [] (int command, VTermStringFragment frag, void *user) {
+            (void)command;(void)frag;(void)user;
             return 1;
         };
-        unhandled.dcs = [] (const char *command, size_t cmdlen, void *user) {
-            (void)command;(void)cmdlen;(void)user;
+        unhandled.dcs = [] (const char *command, size_t commandlen, VTermStringFragment frag, void *user) {
+            (void)command;(void)commandlen;(void)frag;(void)user;
             return 1;
         };
-        unhandled.resize = nullptr;
 
         vterm_screen_set_unrecognised_fallbacks(vts, &unhandled, this);
 
@@ -298,7 +295,7 @@ private:
     int controlFd = 0; // defaults to stdin
     QByteArray pendingControlData;
     VTermScreenCallbacks screenCallbacks;
-    VTermParserCallbacks unhandled;
+    VTermStateFallbacks unhandled;
 
     // buffered screen state
     bool cursorVisible = true;

@@ -6,16 +6,16 @@ task:
     - apt update
     - apt install -y python3 bzr libtool-bin ninja-build git pkg-config qttools5-dev-tools qtbase5-dev
   vterm_script:
-    - bzr branch -r 757 http://bazaar.leonerd.org.uk/c/libvterm/
+    - bzr branch -r 789 http://bazaar.leonerd.org.uk/c/libvterm/
     - cd libvterm
     - make distdir
-    - cd libvterm-0.1/
+    - cd libvterm-0.2/
     - mkdir prefix
     - make install PREFIX=$PWD/prefix
     
   build_script:
     - git clone https://github.com/mesonbuild/meson.git
-    - PKG_CONFIG_PATH=$PWD/libvterm/libvterm-0.1/prefix/lib/pkgconfig/ meson/meson.py _build
+    - PKG_CONFIG_PATH=$PWD/libvterm/libvterm-0.2/prefix/lib/pkgconfig/ meson/meson.py _build
     - ninja -C _build
   test_script:
     - python3 --version

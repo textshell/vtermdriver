@@ -111,6 +111,7 @@ public:
 
         QObject::connect(&process, qOverload<int>(&QProcess::finished), [this](int code) {
             const QByteArray msg = QString("*exited:%0").arg(code).toUtf8();
+            exitCode = code;
             write(controlFd, msg.data(), msg.size() + 1);
             if (autoQuit) {
                 QCoreApplication::instance()->quit();
@@ -121,6 +122,10 @@ public:
         process.setArguments(args.mid(1));
         process.setProcessChannelMode(QProcess::ForwardedChannels);
         process.start();
+    }
+
+    int getExitCode() {
+        return exitCode;
     }
 
 private:
@@ -308,6 +313,7 @@ private:
     QByteArray pendingControlData;
     VTermScreenCallbacks screenCallbacks;
     VTermStateFallbacks unhandled;
+    int exitCode = 22;
 
     // buffered screen state
     bool cursorVisible = true;
@@ -338,6 +344,7 @@ int main(int argc, char** argv) {
     parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
     parser.addPositionalArgument("command", "Command to execute and connect to the terminal");
     parser.addOption({ "control-via-fd0", "control communication is via fd 0."});
+    parser.addOption({ "propagate-exit-code", "Propagate exist code from inner command to driver exit code."});
     parser.process(app);
     const QStringList args = parser.positionalArguments();
 
@@ -350,5 +357,5 @@ int main(int argc, char** argv) {
 
     app.exec();
 
-    return 0;
+    return parser.isSet("propagate-exit-code") ? m.getExitCode() : 0;
 }

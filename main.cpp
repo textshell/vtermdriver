@@ -23,6 +23,7 @@ public:
             exit(1);
         }
         fcntl(masterFd, F_SETFD, FD_CLOEXEC);
+        fcntl(masterFd, F_SETFL, fcntl(masterFd, F_GETFL, 0) | O_NONBLOCK);
         fcntl(slaveFd, F_SETFD, FD_CLOEXEC);
     }
 
@@ -98,9 +99,7 @@ public:
 
         QSocketNotifier *masterRead = new QSocketNotifier(process.masterFd, QSocketNotifier::Read);
         QObject::connect(masterRead, &QSocketNotifier::activated, [this] {
-            char buff[1000];
-            ssize_t num = ::read(process.masterFd, buff, 1000);
-            vterm_input_write(vterm, buff, num);
+            ensureAppToTerminalDrained();
         });
 
         QSocketNotifier *ttyRead = new QSocketNotifier(controlFd, QSocketNotifier::Read);
@@ -221,10 +220,12 @@ private:
 
                 //qDebug() << "cmd" << cmd;
                 if (cmd == "capture:img") {
+                    ensureAppToTerminalDrained();
                     QByteArray msg = captureAsJson(vterm, inverse).toUtf8();
                     msg.append('\0');
                     write(controlFd, msg.data(), msg.size());
                 } else if (cmd == "capture:all") {
+                    ensureAppToTerminalDrained();
                     captureAll();
                 } else if (cmd.startsWith("send-to-interior:")) {
                     QByteArray hex = cmd.mid(17);
@@ -286,6 +287,17 @@ private:
     void emitBell() {
         const char msg[] = "*bell";
         write(controlFd, msg, sizeof(msg));
+    }
+
+    void ensureAppToTerminalDrained() {
+        char buff[1000];
+        ssize_t num = 0;
+        do {
+            num = ::read(process.masterFd, buff, 1000);
+            if (num > 0) {
+                vterm_input_write(vterm, buff, num);
+            }
+        } while (num > 0);
     }
 
 private:

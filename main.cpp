@@ -109,9 +109,9 @@ public:
             controlData(buff, num);
         });
 
-        QObject::connect(&process, qOverload<int>(&QProcess::finished), [this] {
-            const char msg[] = "*exited";
-            write(controlFd, msg, sizeof(msg));
+        QObject::connect(&process, qOverload<int>(&QProcess::finished), [this](int code) {
+            const QByteArray msg = QString("*exited:%0").arg(code).toUtf8();
+            write(controlFd, msg.data(), msg.size() + 1);
             if (autoQuit) {
                 QCoreApplication::instance()->quit();
             }

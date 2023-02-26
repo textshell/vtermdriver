@@ -51,9 +51,9 @@ Automatically quit if the interior application exits.
 Notifications
 -------------
 
-*exited
+*exited:[code]
 
-The application has exited.
+The application has exited with exit code [code].
 
 *bell
 

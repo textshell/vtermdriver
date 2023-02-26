@@ -44,7 +44,7 @@ def run_in_terminal(args, *, cmds=[]):
                         if message and message[0] == ord('{'):
                             result = json.loads(message.decode())
                             outer.send(b'quit\0')
-                        elif message == b'*exited':
+                        elif message.startswith(b'*exited:'):
                             outer.send(b'capture:all\0')
                         elif message.startswith(b'*'):
                             notifications.append(message.decode())
